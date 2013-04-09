@@ -4,6 +4,7 @@ import socket
 from tabuleiro import *
 import configuration
 import constantes
+import pickle as serialize
 
 class Jogador(object):
     """
@@ -13,6 +14,8 @@ class Jogador(object):
         """
         """
         self.sock = socket.socket()
+        self.sock.setblocking(1)
+        self.sock.settimeout(0.1)
         self.host = socket.gethostname()
         self.porta = configuration.porta
         self.sock.connect((self.host, self.porta))
@@ -21,7 +24,7 @@ class Jogador(object):
         pygame.display.set_caption("5 numa linha")
         self.tela = pygame.display.get_surface()
         self.desenha_tabuleiro()
-        pygame.display.update()     
+        pygame.display.update()   
                 
 
     def desenha_tabuleiro(self):
@@ -58,7 +61,7 @@ class Jogador(object):
         """
         """
         casa = self.mapeia_casa(posicaoClique)
-        self.sock.sendall("BLABLALAB: " + str(casa))
+        self.sock.sendall(serialize.dumps(casa))
         self.desenha_jogador(casa, constantes.azul) #XXXremove
 
     def logicaNotHere(self):
@@ -72,6 +75,7 @@ class Jogador(object):
     def run(self):
         print "pracatum"
         while True:
+            #PyGame
             for evento in pygame.event.get():
                 # para sair do jogo
                 if evento.type == pygame.QUIT:
@@ -81,9 +85,14 @@ class Jogador(object):
                 # jogador pressionou uma area
                 if evento.type == pygame.MOUSEBUTTONDOWN:
                     self.envia_clique(evento.pos, 0)
-                    print self.sock.recv(127)
 
-
+            #Network
+            try:
+                data = self.sock.recv(127)
+                print data
+                print serialize.loads(data)
+            finally:
+                pass
 
 # try:
 #     # Enviar dados

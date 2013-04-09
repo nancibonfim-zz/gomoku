@@ -3,6 +3,7 @@ import socket
 from tabuleiro import *
 import constantes
 import configuration
+import pickle as serialize
 
 class GameServer(object):
     """
@@ -21,9 +22,14 @@ class GameServer(object):
         self.porta = configuration.porta
         self.servidor.bind((self.host, self.porta))
         self.servidor.listen(2) # numero maximo de conexoes
+
         self.jogadores = []
         self.jogadores.append(self.servidor.accept())
         self.jogadores.append(self.servidor.accept())
+
+        self.servidor.setblocking(1)
+        self.servidor.settimeout(0.1)
+
         self.jogoEmAndamento = True
         self.jogadorAtual = -1
 
@@ -37,10 +43,17 @@ class GameServer(object):
         self.jogoEmAndamento = valor
 
     def jogo(self):
+        print "vaicomercar"
         while self.getJogoEmAndamento():
+            print "pipipipipipi"
             jogador = self.proximo_jogador()
-            jogada = jogador[0].recv(1024)
-            self.rodada(jogador, jogada)
+
+            try:
+                jogada = jogador[0].recv(1024)
+                print jogada
+                self.rodada(jogador, serialize.loads(jogada))
+            finally:
+                pass
 
     def rodada(self, jogador, jogada):
         """
@@ -54,9 +67,9 @@ class GameServer(object):
             #TODO: Fazer algo pro fim do jogo
         else:
             try:
-                
-                self.jogadores[0][0].sendall("mimimimimi")
-                self.jogadores[1][0].sendall("mimimimimi")
+                data = serialize.dumps({"mimimimimi", "uaaaaaaaaaaaaaa"})
+                self.jogadores[0][0].sendall(data)
+                self.jogadores[1][0].sendall(data)
             finally:
                 self.servidor.close()
 
