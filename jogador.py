@@ -1,9 +1,5 @@
-import pygame
-import sys
-import socket
+import pygame, sys, socket, select, configuration, constantes
 from tabuleiro import *
-import configuration
-import constantes
 import pickle as serialize
 
 class Jogador(object):
@@ -72,6 +68,15 @@ class Jogador(object):
             self.tabuleiro.set_casa(casa, 1)
             self.tabuleiro.exibe()
 
+    def read_from_server(self):
+        try:
+            #XXX: weird ugly fucking shit of hack
+            ready, ignore, ignore2 = select.select([self.sock], [], [], 0)
+            for s in ready:
+                return s.recv(127)
+        finally:
+            pass
+
     def run(self):
         print "pracatum"
         while True:
@@ -87,12 +92,10 @@ class Jogador(object):
                     self.envia_clique(evento.pos, 0)
 
             #Network
-            try:
-                data = self.sock.recv(127)
+            data = self.read_from_server()
+            if data:
                 print data
                 print serialize.loads(data)
-            finally:
-                pass
 
 # try:
 #     # Enviar dados

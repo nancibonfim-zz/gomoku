@@ -1,8 +1,5 @@
-import sys, pygame
-import socket
+import sys, pygame, select, socket, constantes, configuration
 from tabuleiro import *
-import constantes
-import configuration
 import pickle as serialize
 
 class GameServer(object):
@@ -24,8 +21,8 @@ class GameServer(object):
         self.servidor.listen(2) # numero maximo de conexoes
 
         self.jogadores = []
-        self.jogadores.append(self.servidor.accept())
-        self.jogadores.append(self.servidor.accept())
+        self.jogadores.append(self.servidor.accept()[0])
+        self.jogadores.append(self.servidor.accept()[0])
 
         self.servidor.setblocking(1)
         self.servidor.settimeout(0.1)
@@ -44,14 +41,15 @@ class GameServer(object):
 
     def jogo(self):
         print "vaicomercar"
+        jogador = self.proximo_jogador() #XXX: this should be changed inside rodada
         while self.getJogoEmAndamento():
-            print "pipipipipipi"
-            jogador = self.proximo_jogador()
-
             try:
-                jogada = jogador[0].recv(1024)
-                print jogada
-                self.rodada(jogador, serialize.loads(jogada))
+                #XXX: weird ugly fucking shit of hack
+                ready, ignore, ignore2 = select.select(self.jogadores, [], [], 0)
+                for s in ready:
+                    jogada = s.recv(127)
+                    if jogada:
+                        self.rodada(s, serialize.loads(jogada))
             finally:
                 pass
 
@@ -68,8 +66,10 @@ class GameServer(object):
         else:
             try:
                 data = serialize.dumps({"mimimimimi", "uaaaaaaaaaaaaaa"})
-                self.jogadores[0][0].sendall(data)
-                self.jogadores[1][0].sendall(data)
+                ignore, ready, ignore2 = select.select([], self.jogadores, [], 0)
+                for s in ready:
+                    s.sendall(data)
+
             finally:
                 self.servidor.close()
 
