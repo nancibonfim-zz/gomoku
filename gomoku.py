@@ -83,7 +83,12 @@ class GameServer(object):
                         print "socketando"
                         print socket
                         socket.sendall(msg)
-                    self.proximo_jogador()
+                    if self.fim_do_jogo(jogada[1]):
+                        self.setJogoEmAndamento(False)
+                        print "jogo acabado"
+                        # Desenha que o jogador atual ganhou
+                    else:
+                        self.proximo_jogador()
                 finally:
                     self.servidor.close()
 
@@ -92,6 +97,59 @@ class GameServer(object):
 
     def getJogadorAtual(self):
         return self.jogadores[self.indiceJogadorAtual]
+
+    def conta_casas_iguais(self, casaJogada, incremente_i, incremente_j):
+        """
+        """
+        contador = 0
+        i = casaJogada[0]
+        j = casaJogada[1]
+
+        while True:
+            i = incremente_i(i)
+            j = incremente_j(j)
+
+            if (i < configuration.numCasas and j < configuration.numCasas and j >= 0 and i >= 0) and (self.tabuleiro.getCasa((i, j)) == self.indiceJogadorAtual + 1):
+                contador+=1
+            else:
+                break
+
+        return contador
+
+    def conta_casas_eixo(self, casaJogada, incremente_i, incremente_j, decremente_i, decremente_j):
+        """
+        
+        Arguments:
+        - `self`:
+        - `casaJogada`:
+        - `incremente_i`:
+        - `incremente_j`:
+        """
+        contador = 1
+        contador += self.conta_casas_iguais(casaJogada, incremente_i, incremente_j)
+        contador += self.conta_casas_iguais(casaJogada, decremente_i, decremente_j)
+        print contador
+        if contador >= 5:
+            return True
+
+        return False
+        
+
+
+    def fim_do_jogo(self, casaJogada):
+        # Horizontal
+        if self.conta_casas_eixo(casaJogada, lambda x: x + 1, lambda y: y, lambda x: x - 1, lambda y: y):
+            return True
+        # Vertical
+        elif self.conta_casas_eixo(casaJogada, lambda x: x, lambda y: y + 1, lambda x: x, lambda y: y - 1):
+            return True
+        # Diagonal descendo
+        elif self.conta_casas_eixo(casaJogada, lambda x: x + 1, lambda y: y - 1, lambda x: x - 1, lambda y: y + 1):
+            return True
+        # Diagonal subindo
+        elif self.conta_casas_eixo(casaJogada, lambda x: x + 1, lambda y: y + 1, lambda x: x - 1, lambda y: y - 1):
+            return True
+        return False
 
     def getCor(self):
         if (self.indiceJogadorAtual == 0):
