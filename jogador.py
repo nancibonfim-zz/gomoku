@@ -10,11 +10,15 @@ class Jogador(object):
         """
         """
         self.sock = socket.socket()
-        self.sock.setblocking(1)
-        self.sock.settimeout(0.1)
         self.host = host
         self.porta = configuration.porta
+
+        print self.host
+        self.sock.settimeout(10)
+
         self.sock.connect((self.host, self.porta))
+        self.sock.setblocking(1)
+        self.sock.settimeout(0.1)
         pygame.init()
         pygame.display.set_mode((configuration.tamanhoJanela, configuration.tamanhoJanela))
         pygame.display.set_caption("5 numa linha")
@@ -123,7 +127,7 @@ class Jogador(object):
 
 jogador = None
 if len(sys.argv) > 1:
-    jogador = Jogador(argv[1])
+    jogador = Jogador(sys.argv[1])
 else:
     jogador = Jogador()
 

@@ -14,7 +14,7 @@ class GameServer(object):
 
     def estabeleceServer(self):
         self.servidor = socket.socket()
-        self.host = socket.gethostname()
+        self.host = "" # Escuta conexoes de qualquer endereco IP
         self.porta = configuration.porta
         self.servidor.bind((self.host, self.porta))
         self.servidor.listen(2) # numero maximo de conexoes
