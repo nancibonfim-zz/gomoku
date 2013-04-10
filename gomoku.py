@@ -60,7 +60,7 @@ class GameServer(object):
         - `jogada`:
         """
         print jogada
-        casa = self.tabuleiro.getCasa(jogada[1])
+
         if (jogada[0] == constantes.SAIR):
             self.setJogoEmAndamento(False)
             #TODO: Fazer algo pro fim do jogo
@@ -69,7 +69,7 @@ class GameServer(object):
             if (jogador != self.getJogadorAtual()):
                 pass
             # verifica se o lugar esta vazio
-            elif (casa != 0):
+            elif (self.tabuleiro.getCasa(jogada[1]) != 0):
                 pass
             else:
                 try:

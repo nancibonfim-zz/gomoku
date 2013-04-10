@@ -6,13 +6,13 @@ class Jogador(object):
     """
     """
     
-    def __init__(self):
+    def __init__(self, host=socket.gethostname()):
         """
         """
         self.sock = socket.socket()
         self.sock.setblocking(1)
         self.sock.settimeout(0.1)
-        self.host = socket.gethostname()
+        self.host = host
         self.porta = configuration.porta
         self.sock.connect((self.host, self.porta))
         pygame.init()
