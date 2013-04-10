@@ -26,7 +26,9 @@ class Tabuleiro(object):
     def getNumCasas(self):
         return self.numCasas
     
-    def set_casa(self, casa, valor):
+    def setCasa(self, casa, valor):
         print casa
         self.estado[casa[0]][casa[1]] = valor
         
+    def getCasa(self, coordenada):
+        return self.estado[coordenada[0]][coordenada[1]]

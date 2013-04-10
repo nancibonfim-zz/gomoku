@@ -7,3 +7,6 @@ pink = (255,200,200)
 
 vermelho = (255,0,0)
 azul= (0,0,255)
+CLIQUE = 1
+SAIR = 2
+DESENHA = 3
