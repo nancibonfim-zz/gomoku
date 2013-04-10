@@ -1,4 +1,4 @@
-tamanhoJanela = 600
-numCasas = 10
+tamanhoJanela = 400
+numCasas = 12
 pixelsPorQuadrado = tamanhoJanela / numCasas
-porta = 9003
+porta = 19006

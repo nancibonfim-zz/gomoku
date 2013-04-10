@@ -1,6 +1,6 @@
 import sys, pygame, select, socket, constantes, configuration
 from tabuleiro import *
-import json as serialize
+import pickle as serialize
 
 class GameServer(object):
     """
@@ -87,6 +87,12 @@ class GameServer(object):
                         self.setJogoEmAndamento(False)
                         print "jogo acabado"
                         # Desenha que o jogador atual ganhou
+                        msg = serialize.dumps((constantes.VENCEDOR, self.getCoordenadasVencedoras(), self.getCor()))
+                        ignore, ready, ignore2 = select.select([], self.jogadores, [], 0)
+                        for socket in ready:
+                            print "socketando"
+                            print socket
+                            socket.sendall(msg)
                     else:
                         self.proximo_jogador()
                 finally:
@@ -104,17 +110,20 @@ class GameServer(object):
         contador = 0
         i = casaJogada[0]
         j = casaJogada[1]
+        coordenadas =[]
 
         while True:
             i = incremente_i(i)
             j = incremente_j(j)
 
-            if (i < configuration.numCasas and j < configuration.numCasas and j >= 0 and i >= 0) and (self.tabuleiro.getCasa((i, j)) == self.indiceJogadorAtual + 1):
+            if (i < configuration.numCasas and j < configuration.numCasas and j >= 0 and i >= 0) and \
+               (self.tabuleiro.getCasa((i, j)) == self.indiceJogadorAtual + 1):
                 contador+=1
+                coordenadas.append((i,j))
             else:
                 break
 
-        return contador
+        return contador, coordenadas
 
     def conta_casas_eixo(self, casaJogada, incremente_i, incremente_j, decremente_i, decremente_j):
         """
@@ -125,16 +134,29 @@ class GameServer(object):
         - `incremente_i`:
         - `incremente_j`:
         """
+        coordenadas = []
         contador = 1
-        contador += self.conta_casas_iguais(casaJogada, incremente_i, incremente_j)
-        contador += self.conta_casas_iguais(casaJogada, decremente_i, decremente_j)
+        result = self.conta_casas_iguais(casaJogada, incremente_i, incremente_j)
+        contador += result[0]
+        for coord in result[1]:
+            coordenadas.append(coord)
+        result = self.conta_casas_iguais(casaJogada, decremente_i, decremente_j)
+        contador += result[0]
+        for coord in result[1]:
+            coordenadas.append(coord)
         print contador
-        if contador >= 5:
+        if contador == 5:
+            coordenadas.append(casaJogada)
+            self.setCoordenadasVencedoras(coordenadas)
             return True
 
         return False
         
+    def setCoordenadasVencedoras(self, lista_coordenadas):
+        self.coordenadas_vencedoras = lista_coordenadas
 
+    def getCoordenadasVencedoras(self):
+        return self.coordenadas_vencedoras      
 
     def fim_do_jogo(self, casaJogada):
         # Horizontal
@@ -160,7 +182,3 @@ class GameServer(object):
 
 
 gomoku = GameServer(configuration.tamanhoJanela, configuration.numCasas)
-
-
-# casa vazia
-# ao pressionar o botao muda de jogador

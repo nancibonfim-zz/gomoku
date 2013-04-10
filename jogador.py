@@ -1,6 +1,6 @@
 import pygame, sys, socket, select, configuration, constantes
 from tabuleiro import *
-import json as serialize
+import pickle as serialize
 
 class Jogador(object):
     """
@@ -47,6 +47,16 @@ class Jogador(object):
         y = casa[1] * quadrado + (quadrado/2)
         pygame.draw.circle(self.tela, cor, (x,y), raio, 0)
         pygame.display.update()
+
+    def pinta_vencedor(self, lista_coordenadas, cor):
+        quadrado = configuration.pixelsPorQuadrado
+        for coord in lista_coordenadas:
+            x = coord[0] * quadrado
+            y = coord[1] * quadrado
+            pygame.draw.rect(self.tela, constantes.branco, (x, y, quadrado, quadrado), 0)
+            self.desenha_jogador(coord, cor)
+        pygame.display.update()
+
 
     def mapeia_casa(self, posicaoClique):
         x = (int)(posicaoClique[0]) / configuration.pixelsPorQuadrado
@@ -115,6 +125,9 @@ class Jogador(object):
         if (msg[0] == constantes.DESENHA):
             print "vo desenha, vu"
             self.desenha_jogador(msg[1], msg[2])
+        elif (msg[0 == constantes.VENCEDOR]):
+            print 'tem um vencedor'
+            self.pinta_vencedor(msg[1], msg[2])                
         else:
             print 'nao processei a mensagem ' + msg
 
