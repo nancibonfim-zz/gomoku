@@ -1,6 +1,6 @@
 import pygame, sys, socket, select, configuration, constantes
 from tabuleiro import *
-import pickle as serialize
+import json as serialize
 
 class Jogador(object):
     """
@@ -71,14 +71,6 @@ class Jogador(object):
         msg = (acao, casa)
         self.escrever_no_servidor(serialize.dumps(msg))
 
-    # def logicaNotHere(self):
-    #     if jogador == 0:
-    #         self.desenha_jogador(casa, constantes.azul)
-    #     else:
-    #         self.desenha_jogador(casa, constantes.vermelho)
-    #         self.tabuleiro.set_casa(casa, 1)
-    #         self.tabuleiro.exibe()
-
     def ler_do_servidor(self):
         try:
             ready, ignore, ignore2 = select.select([self.sock], [], [], 0)
@@ -98,7 +90,6 @@ class Jogador(object):
             pass        
 
     def run(self):
-        print "pracatum"
         while True:
             #PyGame
             for evento in pygame.event.get():
@@ -117,38 +108,17 @@ class Jogador(object):
             if data:
                 print data
                 msg = serialize.loads(data)
-                print "jaspiion"
                 print msg
                 self.processa_mensagem(msg)
 
     def processa_mensagem(self, msg):
         if (msg[0] == constantes.DESENHA):
-            print "vo desenha, vu"
             self.desenha_jogador(msg[1], msg[2])
         elif (msg[0 == constantes.VENCEDOR]):
             print 'tem um vencedor'
             self.pinta_vencedor(msg[1], msg[2])                
         else:
             print 'nao processei a mensagem ' + msg
-
-# try:
-#     # Enviar dados
-#     message = 'This is the message.  It will be repeated.'
-#     print >>sys.stderr, 'sending "%s"' % message
-#     sock.sendall(message)
-
-#     # Aguarda resposta
-#     amount_received = 0
-#     amount_expected = len(message)
-                    
-#     while amount_received < amount_expected:
-#         data = sock.recv(16)
-#         amount_received += len(data)
-#         print >>sys.stderr, 'received "%s"' % data
-
-# finally:
-#     print >>sys.stderr, 'closing socket'
-#     sock.close()
 
 jogador = Jogador()
 jogador.run()

@@ -1,6 +1,6 @@
 import sys, pygame, select, socket, constantes, configuration
 from tabuleiro import *
-import pickle as serialize
+import json as serialize
 
 class GameServer(object):
     """
@@ -77,12 +77,7 @@ class GameServer(object):
                     self.tabuleiro.exibe()
                     msg = serialize.dumps((constantes.DESENHA, jogada[1], self.getCor()))
                     ignore, ready, ignore2 = select.select([], self.jogadores, [], 0)
-                    print "server will send"
                     print msg
-                    for socket in ready:
-                        print "socketando"
-                        print socket
-                        socket.sendall(msg)
                     if self.fim_do_jogo(jogada[1]):
                         self.setJogoEmAndamento(False)
                         print "jogo acabado"
@@ -90,10 +85,14 @@ class GameServer(object):
                         msg = serialize.dumps((constantes.VENCEDOR, self.getCoordenadasVencedoras(), self.getCor()))
                         ignore, ready, ignore2 = select.select([], self.jogadores, [], 0)
                         for socket in ready:
-                            print "socketando"
+                            print "ending"
                             print socket
                             socket.sendall(msg)
                     else:
+                        for socket in ready:
+                            print "drawing"
+                            print socket
+                            socket.sendall(msg)
                         self.proximo_jogador()
                 finally:
                     self.servidor.close()
@@ -144,8 +143,9 @@ class GameServer(object):
         contador += result[0]
         for coord in result[1]:
             coordenadas.append(coord)
+        print "contando casas"
         print contador
-        if contador == 5:
+        if contador >= 5:
             coordenadas.append(casaJogada)
             self.setCoordenadasVencedoras(coordenadas)
             return True
