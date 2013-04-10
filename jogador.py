@@ -95,7 +95,7 @@ class Jogador(object):
             for evento in pygame.event.get():
                 # para sair do jogo
                 if evento.type == pygame.QUIT:
-                    self.sock.sendall(serialize.dumps(constantes.SAIR, []))
+                    self.sock.sendall(serialize.dumps((constantes.SAIR, [])))
                     pygame.quit()
                     sys.exit()
 
@@ -120,5 +120,11 @@ class Jogador(object):
         else:
             print 'nao processei a mensagem ' + msg
 
-jogador = Jogador()
+
+jogador = None
+if len(sys.argv) > 1:
+    jogador = Jogador(argv[1])
+else:
+    jogador = Jogador()
+
 jogador.run()
