@@ -1,184 +1,164 @@
-import sys, pygame, select, socket, constantes, configuration
-from tabuleiro import *
+import pygame
+import sys
+import socket
+import select
+import configuration
+import constants
+from game_board import *
 import json as serialize
 
 class GameServer(object):
-    """
-    """
-    def __init__(self, tamanhoTab, nCasas ):
-        """
-        """
-        self.tabuleiro = Tabuleiro(tamanhoTab, nCasas)
-        self.estabeleceServer()
-        self.jogo()
 
-    def estabeleceServer(self):
-        self.servidor = socket.socket()
-        self.host = "" # Escuta conexoes de qualquer endereco IP
-        self.porta = configuration.porta
-        self.servidor.bind((self.host, self.porta))
-        self.servidor.listen(2) # numero maximo de conexoes
+    def __init__(self, board_length, nSquares):
+        self.board = Board(board_length, nSquares)
+        self.set_server()
+        self.game()
 
-        # o servidor aceita dois jogadores
-        self.jogadores = []
-        self.jogadores.append(self.servidor.accept()[0])
-        self.jogadores.append(self.servidor.accept()[0])
+    def set_server(self):
+        self.server = socket.socket()
+        self.host = ""
+        self.door = configuration.door
+        self.server.bind((self.host, self.door))
+        self.server.listen(2) # max number of conections
 
-        self.servidor.setblocking(1) # nao bloqueante
-        self.servidor.settimeout(0.1)
+        # a server accepts 2 players
+        self.players = []
+        self.players.append(self.server.accept()[0])
+        self.players.append(self.server.accept()[0])
 
-        self.jogoEmAndamento = True
-        self.indiceJogadorAtual = 0
+        self.server.setblocking(1)
+        self.server.settimeout(0.1)
 
-    def getPorta(self):
-      return self.porta
+        self.game_in_progress = True
+        self.player_indice = 0
 
-    def getJogoEmAndamento(self):
-        return self.jogoEmAndamento
-    
-    def setJogoEmAndamento(self, valor):
-        self.jogoEmAndamento = valor
+    def getDoor(self):
+      return self.door
 
-    def jogo(self):
-        print "iniciando jogo"
-        jogador = self.proximo_jogador() #XXX: this should be changed inside rodada
-        while self.getJogoEmAndamento():
+    def set_game_in_progress(self, valor):
+        self.game_in_progress = valor
+
+    def game(self):
+        print "initializing game"
+        player = self.next_player()
+        while self.game_in_progress:
             try:
-                # ready: array com sockets dos jogadores que estao prontos para ser lidos no socket
-                ready, ignore, ignore2 = select.select(self.jogadores, [], [], 0)
+                # ready: sockets of the players ready to be read in the socket
+                ready, ignore, ignore2 = select.select(self.players, [], [], 0)
                 for socket in ready:
-                    acao = socket.recv(127)
-                    if acao:
-                        self.rodada(socket, serialize.loads(acao))
+                    action = socket.recv(127)
+                    if action:
+                        self.round(socket, serialize.loads(action))
             finally:
                 pass
 
-    def rodada(self, jogador, jogada):
-        """
-        Arguments:
-        - `jogador`:
-        - `jogada`:
-        """
-        print jogada
-
-        if (jogada[0] == constantes.SAIR):
-            self.setJogoEmAndamento(False)
-            #TODO: Fazer algo pro fim do jogo
-        elif (jogada[0] == constantes.CLIQUE):
-            # verificar se eh o turno do jogador
-            if (jogador != self.getJogadorAtual()):
+    def round(self, player, move):
+        """ """
+        if (move[0] == constants.QUIT):
+            self.set_game_in_progress(False)
+            #TODO: make something to the end of the game
+        elif (move[0] == constants.CLICK):
+            # verifies if is the player's turn
+            if (player != self.get_player()):
                 pass
-            # verifica se o lugar esta vazio
-            elif (self.tabuleiro.getCasa(jogada[1]) != 0):
+            # verifies if is a empty square
+            elif (self.board.getSquare(move[1]) != 0):
                 pass
             else:
                 try:
-                    self.tabuleiro.setCasa(jogada[1], self.indiceJogadorAtual + 1)
-                    self.tabuleiro.exibe()
-                    msg = serialize.dumps((constantes.DESENHA, jogada[1], self.getCor()))
-                    ignore, ready, ignore2 = select.select([], self.jogadores, [], 0)
-                    print msg
-                    if self.fim_do_jogo(jogada[1]):
-                        self.setJogoEmAndamento(False)
-                        print "jogo acabado"
-                        # Desenha que o jogador atual ganhou
-                        msg = serialize.dumps((constantes.VENCEDOR, self.getCoordenadasVencedoras(), self.getCor()))
-                        ignore, ready, ignore2 = select.select([], self.jogadores, [], 0)
+                    self.board.setSquare(move[1], self.player_indice + 1)
+                    self.board.display()
+                    msg = serialize.dumps((constants.DRAW, move[1], self.get_color()))
+                    ignore, ready, ignore2 = select.select([], self.players, [], 0)
+
+                    # checks if we have a winner
+                    if self.end_game(move[1]):
+                        self.set_game_in_progress(False)
+                        print "end of the game"
+                        # Draws the winner
+                        msg = serialize.dumps((constants.WINNER, self.get_winner_coordinates(), self.get_color()))
+                        ignore, ready, ignore2 = select.select([], self.players, [], 0)
                         for socket in ready:
-                            print "ending"
-                            print socket
                             socket.sendall(msg)
                     else:
                         for socket in ready:
-                            print "drawing"
-                            print socket
                             socket.sendall(msg)
-                        self.proximo_jogador()
+                        self.next_player()
                 finally:
-                    self.servidor.close()
+                    self.server.close()
 
-    def proximo_jogador(self):
-        self.indiceJogadorAtual = (self.indiceJogadorAtual + 1) % 2
+    def next_player(self):
+        self.player_indice = (self.player_indice + 1) % 2
 
-    def getJogadorAtual(self):
-        return self.jogadores[self.indiceJogadorAtual]
+    def get_player(self):
+        return self.players[self.player_indice]
 
-    def conta_casas_iguais(self, casaJogada, incremente_i, incremente_j):
+    def count_squares(self, played_square, next_i, next_j):
         """
         """
-        contador = 0
-        i = casaJogada[0]
-        j = casaJogada[1]
-        coordenadas =[]
+        counter = 0
+        i = played_square[0]
+        j = played_square[1]
+        coord =[]
 
         while True:
-            i = incremente_i(i)
-            j = incremente_j(j)
+            i = next_i(i)
+            j = next_j(j)
 
-            if (i < configuration.numCasas and j < configuration.numCasas and j >= 0 and i >= 0) and \
-               (self.tabuleiro.getCasa((i, j)) == self.indiceJogadorAtual + 1):
-                contador+=1
-                coordenadas.append((i,j))
+            if (i < configuration.nSquares and j < configuration.nSquares and j >= 0 and i >= 0) and \
+               (self.board.getSquare((i, j)) == self.player_indice + 1):
+                counter += 1
+                coord.append((i,j))
             else:
                 break
 
-        return contador, coordenadas
+        return counter, coord
 
-    def conta_casas_eixo(self, casaJogada, incremente_i, incremente_j, decremente_i, decremente_j):
-        """
-        
-        Arguments:
-        - `self`:
-        - `casaJogada`:
-        - `incremente_i`:
-        - `incremente_j`:
-        """
-        coordenadas = []
-        contador = 1
-        result = self.conta_casas_iguais(casaJogada, incremente_i, incremente_j)
-        contador += result[0]
-        for coord in result[1]:
-            coordenadas.append(coord)
-        result = self.conta_casas_iguais(casaJogada, decremente_i, decremente_j)
-        contador += result[0]
-        for coord in result[1]:
-            coordenadas.append(coord)
-        print "contando casas"
-        print contador
-        if contador >= 5:
-            coordenadas.append(casaJogada)
-            self.setCoordenadasVencedoras(coordenadas)
+    def count_squares_axis(self, played_square, next_i, next_j, previous_i, previous_j):
+        coord = []
+        counter = 1
+        result = self.count_squares(played_square, next_i, next_j)
+        counter += result[0]
+        for crd in result[1]:
+            coord.append(crd)
+        result = self.count_squares(played_square, previous_i, previous_j)
+        counter += result[0]
+        for crd in result[1]:
+            coord.append(crd)
+        if counter >= 5:
+            coord.append(played_square)
+            self.set_winner_coordinates(coord)
             return True
 
         return False
-        
-    def setCoordenadasVencedoras(self, lista_coordenadas):
-        self.coordenadas_vencedoras = lista_coordenadas
 
-    def getCoordenadasVencedoras(self):
-        return self.coordenadas_vencedoras      
+    def set_winner_coordinates(self, coordinates):
+        self.winner_coordinates = coordinates
 
-    def fim_do_jogo(self, casaJogada):
+    def get_winner_coordinates(self):
+        return self.winner_coordinates
+
+    def end_game(self, played_square):
         # Horizontal
-        if self.conta_casas_eixo(casaJogada, lambda x: x + 1, lambda y: y, lambda x: x - 1, lambda y: y):
+        if self.count_squares_axis(played_square, lambda x: x + 1, lambda y: y, lambda x: x - 1, lambda y: y):
             return True
         # Vertical
-        elif self.conta_casas_eixo(casaJogada, lambda x: x, lambda y: y + 1, lambda x: x, lambda y: y - 1):
+        elif self.count_squares_axis(played_square, lambda x: x, lambda y: y + 1, lambda x: x, lambda y: y - 1):
             return True
-        # Diagonal descendo
-        elif self.conta_casas_eixo(casaJogada, lambda x: x + 1, lambda y: y - 1, lambda x: x - 1, lambda y: y + 1):
+        # Down diagonal
+        elif self.count_squares_axis(played_square, lambda x: x + 1, lambda y: y - 1, lambda x: x - 1, lambda y: y + 1):
             return True
-        # Diagonal subindo
-        elif self.conta_casas_eixo(casaJogada, lambda x: x + 1, lambda y: y + 1, lambda x: x - 1, lambda y: y - 1):
+        # Up diagonal
+        elif self.count_squares_axis(played_square, lambda x: x + 1, lambda y: y + 1, lambda x: x - 1, lambda y: y - 1):
             return True
         return False
 
-    def getCor(self):
-        if (self.indiceJogadorAtual == 0):
-            cor = constantes.azul
+    def get_color(self):
+        if (self.player_indice == 0):
+            color = constants.blue
         else:
-            cor = constantes.vermelho
-        return cor
+            color = constants.red
+        return color
 
 
-gomoku = GameServer(configuration.tamanhoJanela, configuration.numCasas)
+gomoku = GameServer(configuration.windowLength, configuration.nSquares)

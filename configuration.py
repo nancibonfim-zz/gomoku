@@ -1,4 +1,4 @@
-tamanhoJanela = 400
-numCasas = 12
-pixelsPorQuadrado = tamanhoJanela / numCasas
-porta = 8003
+windowLength = 400
+nSquares = 12
+pixelsPerSquare = windowLength / nSquares
+door = 8003
